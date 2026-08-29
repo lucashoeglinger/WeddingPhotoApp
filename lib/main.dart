@@ -127,7 +127,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
 
     // Check if input is either the direct password OR the full deep link URL
     bool isValid = (cleanedInput == _secretWeddingPassword);
-    if (!isValid && cleanedInput.contains('weddingapp://')) {
+    if (!isValid && cleanedInput.contains('weddingapp://') || cleanedInput.contains('github.io')) {
       final Uri? uri = Uri.tryParse(cleanedInput);
       if (uri != null) {
         final code = uri.queryParameters['code'] ?? uri.host;
