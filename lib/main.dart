@@ -57,17 +57,14 @@ class _AuthGateState extends State<AuthGate> {
     _initDeepLinks();
   }
 
-  // Handle incoming deep link when app opens via Native Camera QR scan
   Future<void> _initDeepLinks() async {
     _appLinks = AppLinks();
 
-    // 1. Check if the app was launched directly from a deep link URL
     final Uri? initialUri = await _appLinks.getInitialLink();
     if (initialUri != null) {
       _processIncomingUri(initialUri);
     }
 
-    // 2. Listen for deep links while the app is running/backgrounded
     _linkSubscription = _appLinks.uriLinkStream.listen((uri) {
       _processIncomingUri(uri);
     });
@@ -127,7 +124,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
 
     // Check if input is either the direct password OR the full deep link URL
     bool isValid = (cleanedInput == _secretWeddingPassword);
-    if (!isValid && cleanedInput.contains('weddingapp://') || cleanedInput.contains('github.io')) {
+    if (!isValid && (cleanedInput.contains('weddingapp://') || cleanedInput.contains('github.io'))) {
       final Uri? uri = Uri.tryParse(cleanedInput);
       if (uri != null) {
         final code = uri.queryParameters['code'] ?? uri.host;
@@ -357,7 +354,7 @@ class _PhotoUploadPageState extends State<PhotoUploadPage> {
       });
     } catch (e) {
       setState(() {
-        _statusMessage = "Oops! Something went wrong. Try again!";
+        _statusMessage = "Oops! Something went wrong. Try again!: $e";
       });
       if (kDebugMode) print("Upload Error: $e");
     } finally {
