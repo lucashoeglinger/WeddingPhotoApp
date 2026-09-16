@@ -5,18 +5,18 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:path/path.dart' as p;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:minio_new/minio.dart';
 
-const String _secretWeddingPassword = "MA2026WEDDING";
+final String _secretWeddingPassword = dotenv.get("SECRET_WEDDING_PASSWORD");
+final String _minioUser = dotenv.get("MINIO_ROOT_USER");
+final String _minioPassword = dotenv.get("MINIO_ROOT_PASSWORD");
 
-void main() async {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await Supabase.initialize(
-    url: 'https://xpsydjiivvpgnfrzjrzp.supabase.co',
-    publishableKey: 'sb_publishable_QR2xk1HQMw9yQqElhGcXjA_ZuGKoFLJ',
-  );
+  await dotenv.load(fileName: ".env");
 
   runApp(const WeddingApp());
 }
@@ -337,25 +337,36 @@ class _PhotoUploadPageState extends State<PhotoUploadPage> {
         _statusMessage = "Uploading your memory to the couple... 🥂";
       });
 
-      final File file = File(pickedFile.path);
-      final String extension = p.extension(file.path);
-      final String fileName = '${DateTime.now().millisecondsSinceEpoch}$extension';
-
-      await Supabase.instance.client.storage
-          .from('wedding-photos')
-          .upload(
-        fileName,
-        file,
-        fileOptions: const FileOptions(cacheControl: '3600', upsert: false),
+      final minio = Minio(
+        endPoint:"chemistry-fully-pottery-oecd.trycloudflare.com",
+        useSSL: true,
+        accessKey: _minioUser,
+        secretKey:_minioPassword
       );
 
-      setState(() {
-        _statusMessage = "Thank you! Uploaded successfully! ❤️";
-      });
+
+      final File file = File(pickedFile.path);
+      final String extension = p.extension(file.path);
+      final int fileSize = await file.length();
+      final fileStream = file.openRead().map((list) => Uint8List.fromList(list));
+      final String fileName = '${DateTime.now().millisecondsSinceEpoch}$extension';
+    try {
+        await minio.putObject(
+          'weddingpictures',
+          fileName,
+          fileStream,
+          size: fileSize,
+        );
+        setState(() {
+          _statusMessage = "Thank you! Uploaded successfully! ❤️";
+        });
+    } catch (e){
+        setState(() {
+          _statusMessage = "Oops! Something went wrong. Try again!: $e";
+        });
+    }
+
     } catch (e) {
-      setState(() {
-        _statusMessage = "Oops! Something went wrong. Try again!: $e";
-      });
       if (kDebugMode) print("Upload Error: $e");
     } finally {
       setState(() {
